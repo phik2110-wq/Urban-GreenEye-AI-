@@ -1,0 +1,14 @@
+"use client";
+import {useEffect,useState} from "react";
+type R={id:string;reporter_name:string;location:string;description:string;status:string;image_path:string;assigned_team:string;created_at:string};
+const img=(p:string)=>`${process.env.NEXT_PUBLIC_SUPABASE_URL||""}/storage/v1/object/public/${process.env.NEXT_PUBLIC_SUPABASE_BUCKET||"urban-greeneye"}/${(p||"").split("/").map(encodeURIComponent).join("/")}`;
+export default function TeamPanel(){const [ok,setOk]=useState(false),[pin,setPin]=useState(""),[name,setName]=useState(""),[rows,setRows]=useState<R[]>([]),[err,setErr]=useState(""),[busy,setBusy]=useState(false);
+ async function load(){const r=await fetch("/api/reports",{cache:"no-store"});const j=await r.json();setRows(j.reports||[])}
+ useEffect(()=>{if(ok)load()},[ok]);
+ async function login(){const r=await fetch("/api/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"team",pin})});const j=await r.json();if(!r.ok){setErr(j.error);return}setOk(true);setErr("")}
+ async function act(id:string,action:string,fd?:FormData){setBusy(true);setErr("");try{const r=await fetch(`/api/reports/${id}`,{method:"PATCH",body:fd||JSON.stringify({action,team_name:name}),headers:fd?{}:{"Content-Type":"application/json"}});const j=await r.json();if(!r.ok)throw Error(j.error);await load()}catch(e){setErr(e instanceof Error?e.message:"Lỗi cập nhật")}finally{setBusy(false)}}
+ if(!ok)return <div className="card" style={{maxWidth:480}}><h2>Đăng nhập đội dọn dẹp</h2><label>PIN đội</label><input type="password" value={pin} onChange={e=>setPin(e.target.value)}/><button className="btn" style={{marginTop:12}} onClick={login}>Vào khu vực đội</button>{err&&<div className="error">{err}</div>}</div>;
+ const tasks=rows.filter(x=>["Đã duyệt","Đang dọn"].includes(x.status));
+ return <div><div className="card"><label>Tên đội / thành viên</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Ví dụ: Đội Môi Trường A3"/></div>{err&&<div className="error">{err}</div>}
+ {tasks.map(r=><div className="card" key={r.id}><div className="row between"><h3>{r.location||"Nhiệm vụ"}</h3><span className="badge">{r.status}</span></div><p>{r.description}</p><img src={img(r.image_path)} alt="Ảnh hiện trường" style={{width:"100%",maxWidth:420,borderRadius:12}}/>{r.status==="Đã duyệt"?<button className="btn" disabled={busy||!name.trim()} onClick={()=>act(r.id,"assign")}>📌 Nhận nhiệm vụ</button>:<form onSubmit={e=>{e.preventDefault();const fd=new FormData(e.currentTarget);fd.set("action","finish");fd.set("team_name",name);act(r.id,"finish",fd)}}><label>Ảnh sau khi dọn *</label><input type="file" name="cleanup_image" accept="image/*" required/><label>Ghi chú hoàn thành</label><textarea name="cleanup_note"/><button className="btn" disabled={busy}>Xác nhận đã dọn xong</button></form>}</div>)}</div>;
+}

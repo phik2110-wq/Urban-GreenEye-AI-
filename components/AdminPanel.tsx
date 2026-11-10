@@ -1,0 +1,8 @@
+"use client";
+import {useState} from "react";
+export default function AdminPanel(){const [pin,setPin]=useState(""),[ok,setOk]=useState(false),[msg,setMsg]=useState("");
+ async function login(){const r=await fetch("/api/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"admin",pin})});const j=await r.json();if(!r.ok){setMsg(j.error);return}setOk(true);setMsg("Đã đăng nhập quyền quản trị.")}
+ async function action(action:string){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action})});const j=await r.json();setMsg(r.ok?(j.message||"Thành công"):j.error)}
+ if(!ok)return <div className="card" style={{maxWidth:480}}><h2>Đăng nhập quản trị</h2><label>PIN quản trị viên</label><input type="password" value={pin} onChange={e=>setPin(e.target.value)}/><button className="btn" style={{marginTop:12}} onClick={login}>Vào khu vực quản trị</button>{msg&&<div className="error">{msg}</div>}</div>;
+ return <div className="card"><div className="success">Đã đăng nhập quyền quản trị.</div><h2>Trạng thái dịch vụ</h2><p>AI Vision: Cloudflare Workers AI · Lưu trữ: Supabase Postgres + Storage.</p><div className="row"><button className="btn secondary" onClick={()=>action("retry_errors")}>Phân tích lại báo cáo lỗi AI</button><button className="btn danger" onClick={()=>{if(confirm("Xóa TOÀN BỘ báo cáo và điểm? Không thể hoàn tác."))action("reset")}}>Reset toàn bộ database</button></div>{msg&&<p>{msg}</p>}<p className="muted">Các khóa API được đọc ở server từ Vercel Environment Variables, không hiển thị tại trình duyệt.</p></div>;
+}

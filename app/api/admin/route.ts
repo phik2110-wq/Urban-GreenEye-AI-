@@ -1,0 +1,7 @@
+import {NextRequest,NextResponse} from "next/server";
+import {supabase,bucket,requireSupabase} from "@/lib/supabase";
+import {hasRole} from "@/lib/auth";
+export const runtime="nodejs";export const maxDuration=60;
+export async function POST(req:NextRequest){if(!hasRole(req,["admin"]))return NextResponse.json({error:"Bạn cần đăng nhập quản trị."},{status:401});try{requireSupabase();const {action}=await req.json();if(action==="retry_errors"){const {data,error}=await supabase.from("reports").select("id").eq("status","Lỗi AI").limit(5);if(error)throw error;return NextResponse.json({message:`Có ${data?.length||0} báo cáo lỗi. Dùng thao tác phân tích lại từng báo cáo sau khi bật chức năng retry.`})}
+ if(action==="reset"){const {data:rows,error}=await supabase.from("reports").select("id,image_path,cleanup_image_path");if(error)throw error;for(const row of rows||[]){const paths=[row.image_path,row.cleanup_image_path].filter(Boolean);if(paths.length)await supabase.storage.from(bucket).remove(paths)}const {error:delErr}=await supabase.from("reports").delete().neq("id","");if(delErr)throw delErr;await supabase.from("user_points").delete().neq("name","");await supabase.from("team_points").delete().neq("name","");return NextResponse.json({message:"Đã xóa dữ liệu báo cáo và điểm."})}
+ return NextResponse.json({error:"Thao tác không hợp lệ."},{status:400})}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Lỗi quản trị."},{status:500})}}
