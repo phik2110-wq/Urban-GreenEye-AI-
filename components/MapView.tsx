@@ -28,7 +28,7 @@ export default function MapView() {
     fetch("/api/reports", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => setRows(j.reports || []))
-      .catch((error) => console.error("Lỗi tải báo cáo:", error));
+      .catch((error) => console.error(error));
   }, []);
 
   const pts = rows.filter(
@@ -77,10 +77,7 @@ export default function MapView() {
           {pts.map((p) => (
             <Marker
               key={p.id}
-              position={[
-                Number(p.latitude),
-                Number(p.longitude),
-              ]}
+              position={[Number(p.latitude), Number(p.longitude)]}
               icon={L.divIcon({
                 className: "greeneye-pin",
                 html: `<span style="display:block;background:${
